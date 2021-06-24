@@ -16,8 +16,8 @@
 #include <sys/uio.h>
 
 
-#define SIZE 1024
-#define TAM 1024
+#define TAM_COLA 65536
+#define TAM_MSG 4294967296
 
 int createSocket();
 
@@ -31,7 +31,7 @@ int createMQ(const char *cola) {
         return -1;
     }       
 
-    if((tamCola = strlen(cola) + 1 ) > SIZE){
+    if((tamCola = strlen(cola) + 1 ) > TAM_COLA){
         perror("El nombre de la cola es demasiado grande");
         return -1;
     }
@@ -72,7 +72,7 @@ int destroyMQ(const char *cola){
         return -1;
     }       
 
-    if((tamCola = strlen(cola) + 1 ) > SIZE){
+    if((tamCola = strlen(cola) + 1 ) > TAM_COLA){
         perror("El nombre de la cola es demasiado grande");
         return -1;
     }
@@ -113,7 +113,7 @@ int put(const char *cola, const void *mensaje, uint32_t tam) {
         return -1;
     }       
 
-    if((tamCola = strlen(cola) + 1 ) > SIZE){
+    if((tamCola = strlen(cola) + 1 ) > TAM_COLA){
         perror("El nombre de la cola es demasiado grande");
         return -1;
     }
@@ -123,7 +123,7 @@ int put(const char *cola, const void *mensaje, uint32_t tam) {
         return 0;
     }
 
-    if(tam > SIZE){
+    if(tam > TAM_MSG){
         perror("El mensaje es demasiado grande");
         return -1;
     }
@@ -168,7 +168,7 @@ int get(const char *cola, void **mensaje, uint32_t *tam, bool blocking) {
         return -1;
     }       
 
-    if((tamCola = strlen(cola) + 1 ) > SIZE){
+    if((tamCola = strlen(cola) + 1 ) > TAM_COLA){
         perror("El nombre de la cola es demasiado grande");
         return -1;
     }
@@ -244,12 +244,3 @@ int createSocket(){
 
     return socketServ;
 }
-
-// int main(int argc, char *argv[])
-// {
-//     char *c;
-//     c = "test";    
-//     createMQ(c);
-//     return 0;
-// }
-
