@@ -54,12 +54,12 @@ int createMQ(const char *cola) {
     close(socketServ);
 
     if(*result){
-        fprintf(stdout, "OK\n");        
+        free(result);
         return 0;
     } else {
-        fprintf(stdout, "FAIL\n");
+        free(result);
         return -1;
-    }      
+    }
 }
 
 int destroyMQ(const char *cola){
@@ -95,10 +95,10 @@ int destroyMQ(const char *cola){
     close(socketServ);
 
     if(*result){
-        fprintf(stdout, "OK\n");        
+        free(result);    
         return 0;
     } else {
-        fprintf(stdout, "FAIL\n");
+        free(result);
         return -1;
     }      
 }
@@ -150,10 +150,10 @@ int put(const char *cola, const void *mensaje, uint32_t tam) {
     close(socketServ);
 
     if(*result){
-        fprintf(stdout, "OK\n");        
+        free(result);      
         return 0;
     } else {
-        fprintf(stdout, "FAIL\n");
+        free(result);
         return -1;
     }      
 }
@@ -179,7 +179,7 @@ int get(const char *cola, void **mensaje, uint32_t *tam, bool blocking) {
     iov[1].iov_len = sizeof(tamCola);
     iov[2].iov_base = (char *)cola;
     iov[2].iov_len = strlen(cola) + 1;
-    
+
     writev(socketServ, iov, 3);
 
     if ((leido = read(socketServ, result, sizeof(int))) < 0) {
@@ -187,19 +187,34 @@ int get(const char *cola, void **mensaje, uint32_t *tam, bool blocking) {
         close(socketServ);
         return -1;
     }
-
+    
     if(!*result){
-        fprintf(stdout, "FAIL\n");
+        free(result);
         return -1;
     } 
 
-    if ((leido = read(socketServ, result, sizeof(int))) < 0) {
+    if ((leido = read(socketServ, tam, sizeof(uint32_t))) < 0) {
+        perror("error en read");
+        close(socketServ);
+        return -1;
+    }
+    
+    if(*tam == 0){
+        close(socketServ);
+        free(result);
+        return 0;
+    }
+
+    *mensaje = malloc(*tam);
+    if((leido=read(socketServ, *mensaje, *tam)) < 0 ) {
         perror("error en read");
         close(socketServ);
         return -1;
     }
 
     close(socketServ);
+    free(result);
+    return 0;
 }
 
 int createSocket(){

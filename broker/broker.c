@@ -9,15 +9,11 @@
 #include "cola.h"
 #include <stdint.h>
 
-
-
 #include <netdb.h>
 #include <limits.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/uio.h>
-
-#define SIZE 1024
 
 void error_read(int socketServ, int socketClient);
 void print_colas(char *c, void *v);
@@ -91,7 +87,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        fprintf(stdout, "se acepta una peticion\n");
+        fprintf(stdout, "se acepta una nueva peticion\n");
         if ((leido=read(socketClient, op, sizeof(char))) < 0) {
             error_read(socketServ, socketClient);
 			return 1;
@@ -140,9 +136,6 @@ int main(int argc, char *argv[])
             if(dic_remove_entry(d, cola, liberar_cola) < 0){
                 iov[0].iov_base = &fail; 
                 iov[0].iov_len = sizeof(int);
-            } else if (error < 0) {
-                iov[0].iov_base = &fail; 
-                iov[0].iov_len = sizeof(int);
             } else {
                 iov[0].iov_base = &ok; 
                 iov[0].iov_len = sizeof(int);                
@@ -179,6 +172,9 @@ int main(int argc, char *argv[])
             if(cola_push_back(dic_get(d, cola, &error),msg) < 0){
                 iov[0].iov_base = &fail; 
                 iov[0].iov_len = sizeof(int);
+            } else if (error < 0) {
+                iov[0].iov_base = &fail; 
+                iov[0].iov_len = sizeof(int);
             } else {
                 iov[0].iov_base = &ok; 
                 iov[0].iov_len = sizeof(int); 
@@ -200,24 +196,34 @@ int main(int argc, char *argv[])
                 error_read(socketServ, socketClient);
                 return 1;
             }
-
+            
             msg = cola_pop_front(dic_get(d, cola, &error), &error2);
-            if(error < 0 || error2 < 0){
+            uint32_t tamMsg;
+            if(error < 0){
                 iov[0].iov_base = &fail; 
                 iov[0].iov_len = sizeof(int);
                 writev(socketClient, iov, 1);
-            } else {
-                int tamMsg = strlen(msg);
+            } else if(error2 < 0){
+                tamMsg = 0;
                 iov[0].iov_base = &ok; 
                 iov[0].iov_len = sizeof(int);
                 iov[1].iov_base = &tamMsg; 
-                iov[1].iov_len = sizeof(int); 
+                iov[1].iov_len = sizeof(uint32_t);
+                writev(socketClient, iov, 2);      
+            } else {
+                tamMsg = strlen(msg);
+                iov[0].iov_base = &ok; 
+                iov[0].iov_len = sizeof(int);
+                iov[1].iov_base = &tamMsg; 
+                iov[1].iov_len = sizeof(uint32_t); 
                 iov[2].iov_base = msg; 
                 iov[2].iov_len = strlen(msg); 
                 writev(socketClient, iov, 3);
+                free(msg);
             }
         }
 
+        printf("Contenido:\n");
         dic_visit(d, print_colas);
         close(socketClient);
     }
@@ -227,9 +233,9 @@ int main(int argc, char *argv[])
 
 void print_colas(char *c, void *v){
     struct cola *cola = v;
-    printf("%s --->", c);
+    printf("%s:\n", c);
     cola_visit(cola, print_mensajes);
-    printf("n");
+    printf("\n");
 }
 
 void print_mensajes(void *v){
